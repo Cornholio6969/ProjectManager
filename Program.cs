@@ -12,40 +12,6 @@ public class Program
         // Step 1 - Seed initial data
         seedTasks(db);
 
-        //Step 2 - Query and display data
-        using (var context = new ProjectManagerContext())
-        {
-            var tasks = context.Tasks
-                .Include(t => t.Todos);
-
-            foreach (var task in tasks)
-            {
-                Console.WriteLine($"Task: {task.Name}");
-                foreach (var todo in task.Todos)
-                {
-                    Console.WriteLine($"\tTodo: {todo.Name}, Completed: {todo.IsComplete}");
-                }
-            }
-        }
-
-        // Step 3 - Query and display incomplete Tasks and Todos using Linq
-        using (var context = new ProjectManagerContext())
-        {
-            var incompleteTasks = context.Tasks
-                .Where(t => t.Todos.Any(td => !td.IsComplete))
-                .Include(t => t.Todos);
-
-            Console.WriteLine("\nIncomplete Tasks and their Todos:");
-            foreach (var task in incompleteTasks)
-            {
-                Console.WriteLine($"Task: {task.Name}");
-                foreach (var todo in task.Todos.Where(td => !td.IsComplete))
-                {
-                    Console.WriteLine($"\tTodo: {todo.Name}, Completed: {todo.IsComplete}");
-                }
-            }
-        }
-
         // // Note: This sample requires the database to be created before running.
         // Console.WriteLine($"Database path: {db.DbPath}.");
 
@@ -79,27 +45,64 @@ public class Program
 
     public static async void seedTasks(ProjectManagerContext db)
     {
-        db.Add(new Task
-        {
-            Name = "Produce software",
-            Todos = new List<Todo>
+        try
             {
-                new Todo { Name = "Write code", IsComplete = false },
-                new Todo { Name = "Compile source", IsComplete = false },
-                new Todo { Name = "Test program", IsComplete = false }
-            }
-        });
+            db.TeamWorkers.AddRange(
+                // Frontend
+                new TeamWorker
+                {
+                    Team = new Team { Name = "Frontend" },
+                    Worker = new Worker { Name = "Steen Secher" }
+                },
+                new TeamWorker
+                {
+                    Team = new Team { Name = "Frontend" },
+                    Worker = new Worker { Name = "Ejvind Møller" }
+                },
+                new TeamWorker
+                {
+                    Team = new Team { Name = "Frontend" },
+                    Worker = new Worker { Name = "Konrad Sommer" }
+                },
 
-        db.Add(new Task
-        {
-            Name = "Brew coffee",
-            Todos = new List<Todo>
+                // Backend
+                new TeamWorker
+                {
+                    Team = new Team { Name = "Backend" },
+                    Worker = new Worker { Name = "Konrad Sommer" }
+                },
+                new TeamWorker
+                {
+                    Team = new Team { Name = "Backend" },
+                    Worker = new Worker { Name = "Sofus Lotus" }
+                },
+                new TeamWorker
+                {
+                    Team = new Team { Name = "Backend" },
+                    Worker = new Worker { Name = "Remo Lademann" }
+                },
+
+                // Testere
+                new TeamWorker
+                {
+                    Team = new Team { Name = "Testere" },
+                    Worker = new Worker { Name = "Ella Fanth" }
+                },
+                new TeamWorker
+                {
+                    Team = new Team { Name = "Testere" },
+                    Worker = new Worker { Name = "Anne Dam" }
+                },
+                new TeamWorker
+                {
+                    Team = new Team { Name = "Testere" },
+                    Worker = new Worker { Name = "Steen Secher" }
+                }
+            );
+            } catch (Exception ex)
             {
-                new Todo { Name = "Pour water", IsComplete = false },
-                new Todo { Name = "Pour coffee", IsComplete = false },
-                new Todo { Name = "Turn on", IsComplete = false }
+                Console.WriteLine(ex.Message);
             }
-        });
 
         await db.SaveChangesAsync();
     }
