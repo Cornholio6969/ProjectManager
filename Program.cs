@@ -5,13 +5,20 @@ using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 public class Program
 {
-    public static void Main(string[] args)
+    public static async System.Threading.Tasks.Task Main(string[] args)
     {
         using var db = new ProjectManagerContext();
-        db.Database.EnsureCreatedAsync().Wait();
+        await db.Database.EnsureCreatedAsync();
 
         // Step 1 - Seed initial data
-        seedTasks(db);
+        await seedTasks(db);
+
+        //Step 2 - Query and print teams without tasks
+        var teamsWithoutTasks = PrintTeamsWithoutTasks(db);
+        foreach (var team in teamsWithoutTasks)
+        {
+            Console.WriteLine($"Team without tasks: {team.Name}");
+        }
 
         // // Note: This sample requires the database to be created before running.
         // Console.WriteLine($"Database path: {db.DbPath}.");
@@ -44,7 +51,14 @@ public class Program
         // await db.SaveChangesAsync();
     }
 
-    public static async void seedTasks(ProjectManagerContext db)
+    public static List<Team> PrintTeamsWithoutTasks(ProjectManagerContext db)
+    {
+        return db.Teams
+            .Where(t => !db.Tasks.Any(tsk => EF.Property<int>(tsk, "TeamId") == t.TeamId))
+            .ToList();
+    }
+
+    public static async System.Threading.Tasks.Task seedTasks(ProjectManagerContext db)
     {
         var frontend = new Team { Name = "Frontend" };
         var backend  = new Team { Name = "Backend" };
@@ -59,7 +73,6 @@ public class Program
         var ella   = new Worker { Name = "Ella Fanth" };
         var anne   = new Worker { Name = "Anne Dam" };
 
-        // TeamWorkers (kobling)
         db.TeamWorkers.AddRange(
             new TeamWorker { Team = frontend, Worker = steen },
             new TeamWorker { Team = frontend, Worker = ejvind },
@@ -74,98 +87,50 @@ public class Program
             new TeamWorker { Team = testere, Worker = steen }
         );
 
-        // Tasks pr team (sørger for at alle teams har en opgave)
-        var feTask = new Task
-        {
-            Name = "Byg landingpage + navigation",
-            Todos = new List<Todo>
-            {
-                new Todo { Name = "Lav header + menu", IsComplete = false },
-                new Todo { Name = "Implementer hero + CTA", IsComplete = false },
-                new Todo { Name = "Styling (responsive)", IsComplete = false }
-            }
-        };
+        var feTask = new Task { Name = "Byg landingpage + navigation" };
+        var beTask = new Task { Name = "API til projects/workers" };
+        var qaTask = new Task { Name = "Testplan + smoke tests" };
 
-        var beTask = new Task
-        {
-            Name = "API til projects/workers",
-            Todos = new List<Todo>
-            {
-                new Todo { Name = "CRUD endpoints", IsComplete = false },
-                new Todo { Name = "Validering + errors", IsComplete = false },
-                new Todo { Name = "Seed data routes/test", IsComplete = false }
-            }
-        };
-
-        var qaTask = new Task
-        {
-            Name = "Testplan + smoke tests",
-            Todos = new List<Todo>
-            {
-                new Todo { Name = "Skriv testcases", IsComplete = false },
-                new Todo { Name = "Kør smoke test", IsComplete = false },
-                new Todo { Name = "Rapportér bugs", IsComplete = false }
-            }
-        };
-
-        // Knyt tasks til teams + sæt CurrentTask
         frontend.Tasks = new List<Task> { feTask };
-        frontend.CurrentTask = feTask;
+        backend.Tasks  = new List<Task> { beTask };
+        // testere.Tasks = new List<Task> { qaTask }; // hvis du vil give dem en senere
 
-        backend.Tasks = new List<Task> { beTask };
-        backend.CurrentTask = beTask;
+        // 👇 VIGTIGT: sæt IKKE CurrentTask endnu
+        // frontend.CurrentTask = feTask;
+        // backend.CurrentTask = beTask;
 
-        testere.Tasks = new List<Task> { qaTask };
-        testere.CurrentTask = qaTask;
+        var ejvindCurrentTodo = new Todo { Name = "Implementer navbar", IsComplete = false };
+        ejvind.Todos = new List<Todo> { ejvindCurrentTodo };
 
-        // Todos pr worker + sæt CurrentTodo (så alle har en)
-        steen.Todos = new List<Todo>
-        {
-            new Todo { Name = "Review UI + find fejl", IsComplete = false },
-            new Todo { Name = "Fix små UI issues", IsComplete = false }
-        };
-        steen.CurrentTodo = steen.Todos[0];
-
-        ejvind.Todos = new List<Todo>
-        {
-            new Todo { Name = "Implementer navbar", IsComplete = false }
-        };
-        ejvind.CurrentTodo = ejvind.Todos[0];
-
+        var konradCurrentTodo = new Todo { Name = "Sæt API skeleton op", IsComplete = false };
         konrad.Todos = new List<Todo>
         {
-            new Todo { Name = "Sæt API skeleton op", IsComplete = false },
+            konradCurrentTodo,
             new Todo { Name = "Lav DB queries", IsComplete = false }
         };
-        konrad.CurrentTodo = konrad.Todos[0];
 
-        sofus.Todos = new List<Todo>
-        {
-            new Todo { Name = "Lav endpoints for workers", IsComplete = false }
-        };
-        sofus.CurrentTodo = sofus.Todos[0];
+        var sofusCurrentTodo = new Todo { Name = "Lav endpoints for workers", IsComplete = false };
+        sofus.Todos = new List<Todo> { sofusCurrentTodo };
 
-        remo.Todos = new List<Todo>
-        {
-            new Todo { Name = "Auth/validation på API", IsComplete = false }
-        };
-        remo.CurrentTodo = remo.Todos[0];
+        var remoCurrentTodo = new Todo { Name = "Auth/validation på API", IsComplete = false };
+        remo.Todos = new List<Todo> { remoCurrentTodo };
 
-        ella.Todos = new List<Todo>
-        {
-            new Todo { Name = "Skriv testcases til Frontend", IsComplete = false }
-        };
-        ella.CurrentTodo = ella.Todos[0];
-
-        anne.Todos = new List<Todo>
-        {
-            new Todo { Name = "Kør smoke tests på API", IsComplete = false }
-        };
-        anne.CurrentTodo = anne.Todos[0];
-
-        // Tilføj top-level entities (EF tracker resten via relations)
         db.Teams.AddRange(frontend, backend, testere);
         db.Workers.AddRange(steen, ejvind, konrad, sofus, remo, ella, anne);
+
+        // ✅ Save step 1: indsæt alt uden CurrentTask
+        await db.SaveChangesAsync();
+
+        // ✅ Save step 2: nu kan CurrentTask sættes uden cycle
+        frontend.CurrentTask = feTask;
+        backend.CurrentTask  = beTask;
+        // testere.CurrentTask = qaTask; // hvis du giver dem opgaven senere
+
+        // ✅ Save step 3: sæt CurrentTodo efter todos er skrevet
+        ejvind.CurrentTodo = ejvindCurrentTodo;
+        konrad.CurrentTodo = konradCurrentTodo;
+        sofus.CurrentTodo  = sofusCurrentTodo;
+        remo.CurrentTodo   = remoCurrentTodo;
 
         await db.SaveChangesAsync();
     }

@@ -47,6 +47,7 @@ public class ProjectManagerContext : DbContext
         modelBuilder.Entity<Team>()
             .HasOne(t => t.CurrentTask)
             .WithMany()
+            .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
 
         // Worker -> Todos (1-to-many)
@@ -59,7 +60,21 @@ public class ProjectManagerContext : DbContext
         modelBuilder.Entity<Worker>()
             .HasOne(w => w.CurrentTodo)
             .WithMany()
+            .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
+        
+        modelBuilder.Entity<Team>()
+            .HasMany(t => t.Tasks)
+            .WithOne()
+            .HasForeignKey("TeamId")
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Worker>()
+            .HasMany(w => w.Todos)
+            .WithOne()
+            .HasForeignKey("WorkerId")
+            .OnDelete(DeleteBehavior.Cascade);
+
     }
 }
 
@@ -82,7 +97,7 @@ public class Team
     public int TeamId { get; set; }
     public string Name { get; set; }
     public List<Worker> Workers { get; set; }
-    public Task CurrentTask { get; set; }
+    public Task? CurrentTask { get; set; }
     public List<Task> Tasks { get; set; }
 }
 
@@ -99,6 +114,6 @@ public class Worker
     public int WorkerId { get; set; }
     public string Name { get; set; }
     public List<Team> Teams { get; set; }
-    public Todo CurrentTodo { get; set; }
+    public Todo? CurrentTodo { get; set; }
     public List<Todo> Todos { get; set; }
 }
