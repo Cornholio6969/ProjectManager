@@ -20,6 +20,8 @@ public class Program
             Console.WriteLine($"Team without tasks: {team.Name}");
         }
 
+        PrintTeamCurrentTasks(db);
+
         // // Note: This sample requires the database to be created before running.
         // Console.WriteLine($"Database path: {db.DbPath}.");
 
@@ -56,6 +58,22 @@ public class Program
         return db.Teams
             .Where(t => !db.Tasks.Any(tsk => EF.Property<int>(tsk, "TeamId") == t.TeamId))
             .ToList();
+    }
+
+    public static void PrintTeamCurrentTasks(ProjectManagerContext db)
+    {
+        var teamsWithCurrentTasks = db.Teams
+            .Where(t => t.CurrentTask != null)
+            .Select(t => new
+            {
+                TeamName = t.Name,
+                CurrentTaskName = t.CurrentTask!.Name
+            });
+
+        foreach (var team in teamsWithCurrentTasks)
+        {
+            Console.WriteLine($"Team: {team.TeamName}, Current Task: {team.CurrentTaskName}");
+        }
     }
 
     public static async System.Threading.Tasks.Task seedTasks(ProjectManagerContext db)
