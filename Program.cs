@@ -22,6 +22,8 @@ public class Program
 
         PrintTeamCurrentTasks(db);
 
+        PrintTeamCurrentTaskProgress(db);
+
         // // Note: This sample requires the database to be created before running.
         // Console.WriteLine($"Database path: {db.DbPath}.");
 
@@ -75,6 +77,32 @@ public class Program
             Console.WriteLine($"Team: {team.TeamName}, Current Task: {team.CurrentTaskName}");
         }
     }
+
+    public static void PrintTeamCurrentTaskProgress(ProjectManagerContext db)
+    {
+        var teams = db.Teams
+            .Include(t => t.CurrentTask)
+            .ToList();
+
+        foreach (var team in teams.Where(t => t.CurrentTask != null))
+        {
+            var task = team.CurrentTask!;
+
+            var todos = db.Todos
+                .Where(td => EF.Property<int>(td, "TaskId") == task.TaskId)
+                .ToList();
+
+            int total = todos.Count;
+            int done = todos.Count(td => td.IsComplete);
+
+            double pct = total == 0 ? 0 : (done * 100.0 / total);
+
+            Console.WriteLine(
+                $"Team: {team.Name} | Opgave: {task.Name} | {done}/{total} færdige ({pct:0}%)"
+            );
+        }
+    }
+
 
     public static async System.Threading.Tasks.Task seedTasks(ProjectManagerContext db)
     {
