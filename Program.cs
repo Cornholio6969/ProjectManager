@@ -28,6 +28,24 @@ public class Program
             }
         }
 
+        // Step 3 - Query and display incomplete Tasks and Todos using Linq
+        using (var context = new ProjectManagerContext())
+        {
+            var incompleteTasks = context.Tasks
+                .Where(t => t.Todos.Any(td => !td.IsComplete))
+                .Include(t => t.Todos);
+
+            Console.WriteLine("\nIncomplete Tasks and their Todos:");
+            foreach (var task in incompleteTasks)
+            {
+                Console.WriteLine($"Task: {task.Name}");
+                foreach (var todo in task.Todos.Where(td => !td.IsComplete))
+                {
+                    Console.WriteLine($"\tTodo: {todo.Name}, Completed: {todo.IsComplete}");
+                }
+            }
+        }
+
         // // Note: This sample requires the database to be created before running.
         // Console.WriteLine($"Database path: {db.DbPath}.");
 
